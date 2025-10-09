@@ -1,0 +1,7 @@
+Sensor,#,Freq(Hz),Bytes/sample,Rate(kB/s),Volume/day(GB),Comment
+Thermocouple/RTD,40,1,8,0.3125,0.02574920654296875,Redundant key nodes
+Pressure Tx,12,10,8,0.9375,0.07724761962890625,Pump/SG U/D
+Flowmeter,4,5,8,0.15625,0.012874603271484375,Main & branches
+Accel (features),8,200,16,25.0,2.0599365234375,1s window features
+Mic (features),4,800,16,50.0,4.119873046875,1s window features
+DCS events,1,1,200,0.1953125,0.01609325408935547,Alarms/States
