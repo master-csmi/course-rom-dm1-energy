@@ -39,12 +39,11 @@
 % ===== 2. PHYSICAL SYSTEM =====
 \begin{frame}{Physical System — Primary Loop (Schematic)}
 \centering
-\includegraphics[width=0.8\linewidth]{assets/primary_loop_schematic.png}
+\includegraphics[width=0.7\linewidth]{assets/primary_loop_schematic.png}
 
 \vspace{0.6em}
 \footnotesize
-Pressurized Water Reactor (PWR) primary loop: Reactor $\rightarrow$ Steam Generator (SG) $\rightarrow$ Pump $\rightarrow$ Reactor.\\
-Modeling scope: lumped thermo–hydraulics (0D) with temperatures and mass flow as states.
+The picture is simplified from paper \cite{noauthor_pdf_2025}.
 \end{frame}
 
 % ===== 3. SCOPE & OBJECTIVES =====
@@ -56,22 +55,22 @@ Modeling scope: lumped thermo–hydraulics (0D) with temperatures and mass flow 
   \item What-if scenarios: Normal / Pump degraded / Fouled SG.
 \end{itemize}
 
-\textbf{Notes (honest)}
+\textbf{Context}
 \begin{itemize}
-  \item Conceptual prototype: 0D single-phase, constant properties; synthetic data.
-  \item Aligned with digital twin frameworks for nuclear systems \cite{Liu2024_DigitalTwinNuclear,NRC2021_DigitalTwinChallenges}.
+  \item Nuclear digital twins increasingly rely on coupled physics-based and data-driven models \cite{mengyan_current_2024, kochunas_digital_2021}.
+  \item This project demonstrates a minimal conceptual pipeline with synthetic data.
 \end{itemize}
 \end{frame}
 
 % ===== 4. METHODS — ROM =====
 \begin{frame}{Reduced-Order Model (3 ODEs)}
 \small
-\textbf{State:} $x=[T_h,\,T_c,\,\dot m]^\top$ \hfill explicit Euler.
+\textbf{State:} $x=[T_h,\,T_c,\,\dot m]^\top$ \hfill explicit Euler integration.
 
 \medskip
 \textbf{Hydraulics (momentum):}
 \[
-L \frac{d\dot m}{dt}=\Delta P_{\text{pump}}(\dot m)-\Delta P_{\text{loss}}(\dot m),\quad
+L \frac{d\dot m}{dt}=\Delta P_{\text{pump}}-\Delta P_{\text{loss}},\quad
 \Delta P_{\text{pump}}=a_0+a_1\dot m + a_2 \dot m^2,\quad
 \Delta P_{\text{loss}}=k_{\text{sys}}\dot m^2
 \]
@@ -86,24 +85,21 @@ M_c c_p \dot T_c &= \dot m c_p (T_h-T_c)-UA(T_h-T_{\text{sec}})
 
 \medskip
 \footnotesize
-Projection-based ROM and hyper-reduction references: \cite{Benner2015,Quarteroni2016,Barrault2004,Chaturantabut2010}.
-
-\smallskip
-\textbf{ROM type:} physics-based lumped 0D model (not RB/POD); chosen for real-time feasibility and clarity of coupling with EnKF.
-
+Equations derived from lumped thermo-hydraulic principles used in nuclear plant dynamic modeling \cite{dong_lumped-parameter_2018}.\\
+This forms a physics-based ROM suitable for real-time coupling with EnKF.
 \end{frame}
 
 % ===== 5. METHODS — ENKF =====
 \begin{frame}{Data Assimilation — Ensemble Kalman Filter}
 \small
 \textbf{Observations:} $y=[T_h,T_c]^\top$ with Gaussian noise; $\dot m$ unobserved.\\
-\textbf{Forecast:} propagate $N_{\text{ens}}$ members via ROM; jitter on $UA,k_{\text{sys}}$ (process noise).\\
-\textbf{Analysis:} $K=P_fH^\top(HP_fH^\top+R)^{-1}$; update $T_h,T_c$, and indirectly correct $\dot m$.\\
+\textbf{Forecast:} propagate $N_{\text{ens}}$ ensemble members via ROM with parametric jitter.\\
+\textbf{Analysis:} $K=P_fH^\top(HP_fH^\top+R)^{-1}$; update $T_h,T_c$ and indirectly $\dot m$.\\
 
 \medskip
 \footnotesize
-EnKF theory and practice: \cite{Evensen2009_EnKF}.\\
-ROM-based data assimilation and surrogate-enhanced EnKF: \cite{Kovachki2022_MultifidelityEnKF,Maday2015}.
+Theoretical formulation and practical algorithm from \cite{evensen_ensemble_2003}.\\
+Used here in a simplified, synthetic-data context for online state correction.
 \end{frame}
 
 % ===== 6. ARCHITECTURE =====
@@ -113,8 +109,8 @@ ROM-based data assimilation and surrogate-enhanced EnKF: \cite{Kovachki2022_Mult
 
 \vspace{0.6em}
 \footnotesize
-Physical sensors $\rightarrow$ edge ingestion/preprocessing $\rightarrow$ ROM + EnKF online service $\rightarrow$ cloud archive, dashboard, CI/CD.\\
-Conceptual alignment with nuclear DT frameworks \cite{Liu2024_DigitalTwinNuclear,Xiong2025_DeepONetTwin,NRC2021_DigitalTwinChallenges}.
+Physical sensors $\rightarrow$ edge ingestion/preprocessing $\rightarrow$ ROM + EnKF online service $\rightarrow$ cloud archive \& dashboard.\\
+Framework aligned with modern nuclear digital twin architectures \cite{mengyan_current_2024, kochunas_digital_2021}.
 \end{frame}
 
 % ===== 7. RESULTS — HYDRAULICS =====
@@ -122,21 +118,22 @@ Conceptual alignment with nuclear DT frameworks \cite{Liu2024_DigitalTwinNuclear
 \begin{columns}[T,onlytextwidth]
 \column{0.5\textwidth}
 \img[0.98]{assets/fig_flow_cases_dynamic.png}\\[-0.2em]
-\footnotesize Flow $\dot m(t)$ under scenarios.
+\footnotesize Flow $\dot m(t)$ under different operating scenarios.
 \column{0.5\textwidth}
 \img[0.98]{assets/fig_dpump_cases_dynamic.png}\\[-0.2em]
 \footnotesize Pump head $\Delta P_{\text{pump}}(t)$.
 \end{columns}
 \medskip
 \footnotesize
-Fouled SG slightly modifies the thermal path, while degraded pump reduces flow stability.
+Fouled SG (green) causes minimal flow deviation; degraded pump (orange) reduces stability.\\
+Modeling assumptions consistent with \cite{dong_lumped-parameter_2018}.
 \end{frame}
 
 % ===== 8. RESULTS — THERMAL =====
 \begin{frame}{Results — Thermal Evolution}
 \centering
 \img[0.9]{assets/fig_temperature_dynamic.png}\\[-0.2em]
-\footnotesize Hot-leg temperature $T_h(t)$ for Normal / Pump-degraded / Fouled-SG.
+\footnotesize Hot-leg temperature $T_h(t)$ for Normal / Pump-degraded / Fouled-SG scenarios.
 \end{frame}
 
 % ===== 9. RESULTS — ENKF =====
@@ -147,10 +144,11 @@ Fouled SG slightly modifies the thermal path, while degraded pump reduces flow s
 \footnotesize $T_h$: model vs measurement vs assimilated (95\% CI).
 \column{0.5\textwidth}
 \img[0.98]{assets/fig_enkf_dynamic_Normal_mdot.png}\\[-0.2em]
-\footnotesize Flow $\dot m$: model mean vs assimilated mean.
+\footnotesize $\dot m$: model mean vs assimilated mean.
 \end{columns}
 \medskip
-\footnotesize Assimilation reduces RMSE(model)$\rightarrow$RMSE(assim) by factor $\sim$2--3.
+\footnotesize
+EnKF assimilation reduces RMSE(model)$\rightarrow$RMSE(assim) by factor $\sim$2--3 \cite{evensen_ensemble_2003}.
 \end{frame}
 
 % ===== 10. V&V & UQ =====
@@ -158,11 +156,15 @@ Fouled SG slightly modifies the thermal path, while degraded pump reduces flow s
 \begin{columns}[T,onlytextwidth]
 \column{0.5\textwidth}
 \img[0.98]{assets/fig_verification_dynamic_Th.png}\\[-0.2em]
-\footnotesize Step-halving on $T_h$ (rel-$L^2\sim10^{-6}$–$10^{-5}$).
+\footnotesize Step-halving verification for $T_h$ (rel-$L^2 \approx 10^{-6}$–$10^{-5}$).
 \column{0.5\textwidth}
 \img[0.98]{assets/fig_verification_dynamic_mdot.png}\\[-0.2em]
-\footnotesize Step-halving on $\dot m$ (consistent convergence).
+\footnotesize Step-halving for $\dot m$ (stable convergence).
 \end{columns}
+\medskip
+\footnotesize
+Uncertainty quantification and safety veto follow recommendations in \cite{kochunas_digital_2021}.\\
+Comparable to numerical verification practices in MELCOR-type simulations \cite{noauthor_pdf_2025}.
 \end{frame}
 
 % ===== 11. DATA BUDGET =====
@@ -189,20 +191,17 @@ DCS events   & 1  & 1    & 200& 0.20 & 0.016 \\
 \bottomrule
 \end{tabular}
 
-
-\textcolor{gray}{\footnotesize Edge features (200/800 Hz, 16 B) $\Rightarrow \sim10\times$ reduction; RGPD-safe.}
 \column{0.42\textwidth}
 \footnotesize
-\textbf{Offline}
+\textbf{Offline:}
 \begin{itemize}
   \item Parameter calibration, baseline setup.
 \end{itemize}
-\textbf{Online}
+\textbf{Online:}
 \begin{itemize}
   \item ROM + EnKF $<\,$\SI{10}{ms}/step (CPU).
-  \item Logs: performance \& RMSE (JSON/CSV).
 \end{itemize}
-\textbf{Edge vs Cloud}
+\textbf{Edge vs Cloud:}
 \begin{itemize}
   \item Edge: preprocessing, assimilation, alarms.
   \item Cloud: storage, retraining, dashboard, CI/CD.
@@ -214,21 +213,17 @@ DCS events   & 1  & 1    & 200& 0.20 & 0.016 \\
 \begin{frame}{Limits \& Perspectives}
 \textbf{Limits}
 \begin{itemize}
-  \item 0D single-phase; no valve/control dynamics; synthetic observations.
+  \item 0D single-phase; synthetic data; no valve/control loops.
 \end{itemize}
 \textbf{Next}
 \begin{itemize}
-  \item 1D section model; temperature-dependent properties.
-  \item Joint state-parameter DA (augment with $UA,k_{\text{sys}}$).
+  \item Extend to 1D transient flow and temperature-dependent properties.
+  \item Integrate real sensor data with uncertainty-aware assimilation \cite{kochunas_digital_2021}.
 \end{itemize}
 \end{frame}
 
-% ===== 13. REFERENCES (BIBTEX) =====
+% ===== 13. REFERENCES =====
 \begin{frame}{References}
-\tiny
-\setlength{\itemsep}{0pt}
-\setlength{\parskip}{0pt}
-\setlength{\parsep}{0pt}
 \bibliographystyle{ieeetr}
 \bibliography{refs_twin_energy}
 \end{frame}
